@@ -116,7 +116,7 @@ export default function FlickReelsWatchPage() {
 
           <div className="text-center flex-1 px-4 min-w-0">
             <h1 className="text-white font-medium truncate text-sm sm:text-base drop-shadow-md">
-              {data?.title || "Loading..."}
+              {data?.drama?.title || "Loading..."}
             </h1>
             <p className="text-white/80 text-xs drop-shadow-md">Episode {currentIndex + 1}</p>
           </div>
@@ -193,7 +193,7 @@ export default function FlickReelsWatchPage() {
 
       <div className="absolute bottom-20 md:bottom-12 left-0 right-0 z-40 pointer-events-none flex items-end justify-between px-4 pb-safe-area-bottom">
         <div className="flex-1 max-w-[70%] mb-2 sm:hidden">
-          <h2 className="text-white font-bold text-lg drop-shadow-lg truncate">{data?.title || "Loading..."}</h2>
+          <h2 className="text-white font-bold text-lg drop-shadow-lg truncate">{data?.drama?.title || "Loading..."}</h2>
           <p className="text-white/80 text-sm drop-shadow-md">Episode {currentIndex + 1}</p>
         </div>
 
@@ -201,8 +201,8 @@ export default function FlickReelsWatchPage() {
           <MobileReelsControls 
             onShowEpisodes={() => setShowEpisodeList(true)}
             shareData={{
-              title: data?.title || "SaPlay",
-              text: `Tonton ${data?.title} Episode ${currentIndex + 1} di SaPlay!`,
+              title: data?.drama?.title || "SaPlay",
+              text: `Tonton ${data?.drama?.title} Episode ${currentIndex + 1} di SaPlay!`,
               url: typeof window !== "undefined" ? window.location.href : ""
             }}
             videoUrl={currentEpisodeData?.raw?.videoUrl || undefined}
