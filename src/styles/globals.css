@@ -1,0 +1,277 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Amber Minimalist Theme (Flat & Solid) ──────── */
+    --background: 0 0% 9%;
+    /* #171717 Neutral Dark */
+    --foreground: 0 0% 90%;
+    /* #e5e5e5 Light Gray */
+
+    --card: 0 0% 12%;
+    /* #1f1f1f Slightly lighter */
+    --card-foreground: 0 0% 90%;
+
+    --popover: 0 0% 9%;
+    --popover-foreground: 0 0% 90%;
+
+    /* Solid Amber (#f59e0b) */
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 9%;
+    /* Dark text for contrast */
+
+    /* Subdued Secondary */
+    --secondary: 0 0% 15%;
+    /* #262626 */
+    --secondary-foreground: 0 0% 90%;
+
+    /* Muted */
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+    /* #999999 */
+
+    /* Accent */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%;
+    /* #2e2e2e */
+    --input: 0 0% 15%;
+    --ring: 38 92% 50%;
+
+    /* Standard Radius */
+    --radius: 0.75rem;
+
+    /* ── Flat Shadows (No Blur/Glow) ─────────────────── */
+    --shadow-solid: 4px 4px 0px 0px hsl(38 92% 50%);
+    --shadow-solid-sm: 2px 2px 0px 0px hsl(38 92% 50%);
+    --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.5);
+
+    /* ── Sidebar ───────────────────────────────────── */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 38 92% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Outfit', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: hsl(38 92% 50%);
+    color: hsl(0 0% 9%);
+  }
+
+  /* ── Global Subtitle Styling ── */
+  video::cue {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    color: white !important;
+    font-family: 'Outfit', system-ui, sans-serif !important;
+    font-size: clamp(16px, 4vw, 24px) !important;
+    line-height: 1.4 !important;
+    padding: 2px 8px !important;
+    max-width: 80% !important;
+    text-align: center !important;
+    text-shadow: none !important;
+    /* Flat subtitle */
+  }
+}
+
+@layer components {
+
+  /* ── Fallbacks for legacy theme classes ──────────────── */
+  .glass,
+  .glass-strong,
+  .frosted-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    backdrop-filter: none;
+  }
+
+  .gradient-text,
+  .gradient-text-warm {
+    background: none;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: unset;
+    background-clip: unset;
+    color: hsl(var(--primary));
+  }
+
+  .gradient-border {
+    border: 2px solid hsl(var(--primary));
+  }
+
+  .gradient-border::before {
+    display: none;
+  }
+
+  .neon-glow {
+    box-shadow: none;
+  }
+
+  /* ── Structural Classes ──────────────────────────────── */
+  .solid-border {
+    border: 2px solid hsl(var(--border));
+    transition: border-color 0.2s;
+  }
+
+  .solid-border:hover {
+    border-color: hsl(var(--primary));
+  }
+
+  /* ── Card Hover ──────────────────────────────────────── */
+  .card-hover {
+    @apply transition-all duration-200 ease-out;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    border-color: hsl(var(--primary));
+    box-shadow: var(--shadow-solid);
+  }
+
+  /* ── Flat Badges ─────────────────────────────────────── */
+  .tag-pill {
+    @apply px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-sm;
+    background: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border: 1px solid hsl(var(--border));
+    transition: all 0.2s;
+  }
+
+  .tag-pill:hover {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--primary));
+  }
+
+  /* ── Nav Links ───────────────────────────────────────── */
+  .nav-link {
+    @apply relative px-4 py-2 text-sm font-bold text-muted-foreground uppercase tracking-wider transition-colors duration-200;
+  }
+
+  .nav-link:hover {
+    @apply text-foreground;
+  }
+
+  .nav-link.active {
+    @apply text-primary;
+  }
+
+  .nav-link.active::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-[3px] bg-primary;
+  }
+
+  /* ── Search Input ────────────────────────────────────── */
+  .search-input {
+    @apply w-full rounded-sm px-5 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none transition-all duration-200;
+    background: hsl(var(--input));
+    border: 2px solid hsl(var(--border));
+  }
+
+  .search-input:focus {
+    border-color: hsl(var(--primary));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-solid-sm);
+  }
+
+  /* ── Badges ──────────────────────────────────────────── */
+  .badge-popular {
+    @apply px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-sm bg-primary text-primary-foreground;
+  }
+
+  .episode-count {
+    @apply inline-flex items-center gap-1 px-2 py-1 text-xs font-bold bg-black text-white rounded-sm border border-white/20;
+  }
+
+  .play-count {
+    @apply inline-flex items-center gap-1 text-xs text-muted-foreground font-medium;
+  }
+
+  /* ── Section Title ───────────────────────────────────── */
+  .section-title {
+    @apply font-display font-black text-2xl md:text-3xl text-foreground uppercase tracking-tight;
+  }
+
+  .section-title-accent {
+    position: relative;
+    padding-left: 1rem;
+  }
+
+  .section-title-accent::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 100%;
+    width: 6px;
+    background: hsl(var(--primary));
+  }
+
+  /* ── Flat Button ─────────────────────────────────── */
+  .btn-gradient {
+    /* Didesain flat, mempertahankan classname agar komponen tidak rusak */
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    @apply font-bold rounded-sm border-2 border-transparent transition-all duration-200;
+  }
+
+  .btn-gradient:hover {
+    background: hsl(var(--background));
+    color: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+}
+
+@layer utilities {
+  .animate-blink {
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+      background-color: hsl(var(--muted));
+    }
+
+    50% {
+      opacity: 0.6;
+      background-color: hsl(var(--border));
+    }
+  }
+}
