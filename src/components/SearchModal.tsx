@@ -41,13 +41,13 @@ export function SearchModal({ onClose }: SearchModalProps) {
     const isSearching = isDbLoad || isRsLoad || isNsLoad || isSmLoad || isMlLoad || isFrLoad || isFwLoad;
 
     let searchResults: any[] = [];
-    if (isDramaBox) searchResults = dramaBoxResults?.data?.list || [];
-    if (isReelShort) searchResults = reelShortResults?.data?.list || [];
-    if (isNetShort) searchResults = netShortResults?.data?.list || [];
-    if (isShortMax) searchResults = shortMaxResults?.data?.list || [];
-    if (isMelolo) searchResults = meloloResults?.data?.list || [];
-    if (isFlickReels) searchResults = flickReelsResults?.data?.list || [];
-    if (isFreeReels) searchResults = freeReelsResults?.data?.list || [];
+    if (isDramaBox) searchResults = dramaBoxResults || [];
+    if (isReelShort) searchResults = reelShortResults?.data || [];
+    if (isNetShort) searchResults = netShortResults?.data || [];
+    if (isShortMax) searchResults = shortMaxResults?.data || [];
+    if (isMelolo) searchResults = meloloResults?.data?.search_data?.[0]?.books || [];
+    if (isFlickReels) searchResults = flickReelsResults?.data || [];
+    if (isFreeReels) searchResults = freeReelsResults || [];
 
     // Focus lock ref
     const inputRef = useRef<HTMLInputElement>(null);
