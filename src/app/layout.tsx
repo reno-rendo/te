@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/styles/globals.css";
 import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/Sidebar";
+import { Header } from "@/components/Header";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/toaster";
