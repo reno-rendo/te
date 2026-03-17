@@ -200,6 +200,9 @@ export default function FlickReelsWatchPage() {
         <div className="flex flex-col items-center gap-4">
           <MobileReelsControls 
             onShowEpisodes={() => setShowEpisodeList(true)}
+            qualities={[]}
+            currentQuality=""
+            onQualityChange={() => {}}
             shareData={{
               title: data?.drama?.title || "SaPlay",
               text: `Tonton ${data?.drama?.title} Episode ${currentIndex + 1} di SaPlay!`,
