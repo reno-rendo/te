@@ -1,12 +1,14 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { NextResponse } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 const UPSTREAM_API = "https://api.sansekai.my.id/api/netshort";
 
 export async function GET() {
   try {
     const response = await fetch(`${UPSTREAM_API}/theaters`, {
-      cache: 'no-store',
+      ...PROXY_CACHE_CONFIG,
+      headers: getProxyHeaders(),
     });
 
     if (!response.ok) {

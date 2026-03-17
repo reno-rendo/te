@@ -1,6 +1,7 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { optimizeCover } from "@/lib/image-utils";
 import { NextRequest } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 const UPSTREAM_API = "https://api.sansekai.my.id/api/shortmax";
 
@@ -8,7 +9,6 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const shortPlayId = searchParams.get("shortPlayId");
-
     if (!shortPlayId) {
       return encryptedResponse(
         { success: false, error: "shortPlayId is required" },
@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
     }
 
     const response = await fetch(`${UPSTREAM_API}/detail?shortPlayId=${shortPlayId}`, {
-      cache: 'no-store',
+      ...PROXY_CACHE_CONFIG,
+      headers: getProxyHeaders(),
     });
 
     if (!response.ok) {

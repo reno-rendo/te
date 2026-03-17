@@ -1,5 +1,6 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { NextRequest, NextResponse } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +11,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const offset = searchParams.get("offset") || "0";
     
-    // Melolo uses offset-based pagination
     const response = await fetch(`${UPSTREAM_API}/foryou?offset=${offset}`, {
-      cache: 'no-store',
+      ...PROXY_CACHE_CONFIG,
+      headers: getProxyHeaders(),
     });
 
     if (!response.ok) {
@@ -28,7 +29,6 @@ export async function GET(request: NextRequest) {
 
     let books: any[] = [];
     
-    // The structure is deeply nested: data.cell.cell_data[].books[]
     if (data?.cell?.cell_data && Array.isArray(data.cell.cell_data)) {
         data.cell.cell_data.forEach((section: any) => {
             if (section.books && Array.isArray(section.books)) {
@@ -37,13 +37,10 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    // Also check for direct 'books' array in data just in case structure varies
     if (data?.books && Array.isArray(data.books)) {
         books = [...books, ...data.books];
     }
     
-    // Extract pagination info
-    // Prefer the top-level has_more/next_offset if available, otherwise check cell
     const hasMore = data?.has_more ?? data?.cell?.has_more ?? false;
     const nextOffset = data?.next_offset ?? data?.cell?.next_offset ?? 0;
 

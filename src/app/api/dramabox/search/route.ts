@@ -1,5 +1,6 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { NextRequest, NextResponse } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 const UPSTREAM_API = "https://api.sansekai.my.id/api/dramabox";
 
@@ -14,7 +15,10 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(
       `${UPSTREAM_API}/search?query=${encodeURIComponent(query)}`,
-      { cache: 'no-store',}
+      { 
+        ...PROXY_CACHE_CONFIG,
+        headers: getProxyHeaders(),
+      }
     );
 
     if (!response.ok) {
@@ -40,4 +44,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

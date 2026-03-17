@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { encryptedResponse } from "@/lib/api-utils";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -12,11 +13,11 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(`https://api.sansekai.my.id/api/freereels/search?query=${encodeURIComponent(query)}`, {
       method: "GET",
+      ...PROXY_CACHE_CONFIG,
       headers: {
+        ...getProxyHeaders(),
         "Content-Type": "application/json",
-        // Add any necessary headers here
       },
-      next: { revalidate: 0 } // Don't cache search results
     });
 
     if (!res.ok) {

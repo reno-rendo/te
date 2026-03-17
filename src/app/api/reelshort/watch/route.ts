@@ -1,5 +1,6 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { NextRequest, NextResponse } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 const UPSTREAM_API = "https://api.sansekai.my.id/api/reelshort";
 
@@ -19,7 +20,8 @@ export async function GET(request: NextRequest) {
     const response = await fetch(
       `${UPSTREAM_API}/episode?bookId=${encodeURIComponent(bookId)}&episodeNumber=${encodeURIComponent(episodeNumber)}`,
       {
-        cache: 'no-store',
+        ...PROXY_CACHE_CONFIG,
+        headers: getProxyHeaders(),
       }
     );
 
@@ -40,4 +42,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

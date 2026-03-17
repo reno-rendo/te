@@ -1,148 +1,82 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { useFreeReelsDetail } from "@/hooks/useFreeReels";
-import { ChevronLeft, ChevronRight, Loader2, List, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Loader2, List, AlertCircle, Play, Pause } from "lucide-react";
 import Link from "next/link";
+import { MobileReelsControls } from "@/components/watch/MobileReelsControls";
+import { ModernEpisodeNav } from "@/components/watch/ModernEpisodeNav";
+import { VideoProgress } from "@/components/watch/VideoProgress";
 import { cn } from "@/lib/utils";
 import Hls from "hls.js";
 
 export default function FreeReelsWatchPage() {
-  const params = useParams();
-  const searchParams = useSearchParams();
+  const params = useParams<{ bookId: string }>();
   const router = useRouter();
-  const bookId = params.bookId as string;
-
-  // State synced with URL search param 'ep'
+  const bookId = params.bookId;
   const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
   const [showEpisodeList, setShowEpisodeList] = useState(false);
-  const [videoQuality, setVideoQuality] = useState<'h264' | 'h265'>('h264');
-  const [useProxy, setUseProxy] = useState(true); // Default to true to avoid CORS issues
-
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showPlayIcon, setShowPlayIcon] = useState(false);
+  const [showPauseIcon, setShowPauseIcon] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
-  const { data, isLoading, error } = useFreeReelsDetail(bookId);
+  const handleSeek = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
 
-  // Sync state from URL params
-  useEffect(() => {
-    const epParam = searchParams.get("ep");
-    if (epParam) {
-      const epIndex = parseInt(epParam, 10) - 1; // URL is 1-based, internal is 0-based
-      if (!isNaN(epIndex) && epIndex >= 0) {
-        setCurrentEpisodeIndex(epIndex);
-        // setUseProxy(false); // REMOVED: Keep proxy active
+  const togglePlayPause = () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+        setIsPlaying(true);
+        setShowPlayIcon(true);
+        setTimeout(() => setShowPlayIcon(false), 800);
+      } else {
+        videoRef.current.pause();
+        setIsPlaying(false);
+        setShowPauseIcon(true);
+        setTimeout(() => setShowPauseIcon(false), 800);
       }
     }
-  }, [searchParams]);
+  };
 
-  // Derived state
-  const drama = data?.data;
-  const episodes = useMemo(() => drama?.episodes || [], [drama]);
+  const { data: detailData, isLoading: detailLoading } = useFreeReelsDetail(bookId || "");
+  const episodes = detailData?.episodes || [];
   const totalEpisodes = episodes.length;
 
-  const currentEpisodeData = useMemo(() => {
-    return episodes[currentEpisodeIndex] || episodes[0] || null;
-  }, [episodes, currentEpisodeIndex]);
+  const currentEpisode = episodes[currentEpisodeIndex];
+  const streamLoading = false; // Data is already in detailData
+  const videoUrl = currentEpisode?.videoUrl;
 
-  // Determine current video URL based on quality selection
-  const currentVideoUrl = useMemo(() => {
-    if (!currentEpisodeData) return "";
-    let sourceUrl = "";
-    if (videoQuality === 'h265' && currentEpisodeData.external_audio_h265_m3u8) {
-      sourceUrl = currentEpisodeData.external_audio_h265_m3u8;
-    } else {
-      sourceUrl = currentEpisodeData.external_audio_h264_m3u8 || currentEpisodeData.videoUrl || "";
-    }
-
-    // We will inject the subtitle URL into the video proxy call if available
-    // This allows the proxy to rewrite the manifest to include the subtitle intrinsically
-    if (currentEpisodeData.subtitleUrl && currentEpisodeData.originalAudioLanguage !== 'id-ID') {
-      // We use a special convention: append &sub=... to the proxy URL
-      // But here we return the raw source. The proxy wrapping happens in the effect.
-      return sourceUrl;
-    }
-
-    return sourceUrl;
-  }, [currentEpisodeData, videoQuality]);
-
-  const proxiedSubtitleUrl = useMemo(() => {
-    if (!currentEpisodeData?.subtitleUrl) return "";
-    return `/api/proxy/video?url=${encodeURIComponent(currentEpisodeData.subtitleUrl)}`;
-  }, [currentEpisodeData]);
-
-  // Load video with HLS support
   useEffect(() => {
-    // Don't auto-load if not available (wait for user interaction or initial load)
-    if (!currentVideoUrl) return;
+    if (videoUrl && videoRef.current) {
+      const video = videoRef.current;
+      const url = videoUrl;
 
-    // Smart fallback logic: Try direct first, then proxy
-    // Check if we need to inject subtitle via proxy
-    const subParam = "";
-    // (currentEpisodeData?.subtitleUrl && currentEpisodeData?.originalAudioLanguage !== 'id-ID') 
-    // ? `&sub=${encodeURIComponent(currentEpisodeData.subtitleUrl)}`
-    // : "";
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
 
-    const videoUrl = useProxy
-      ? `/api/proxy/video?url=${encodeURIComponent(currentVideoUrl)}${subParam}`
-      : currentVideoUrl;
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    // Clean up previous HLS instance
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
-
-    // If we are using proxy or it's an m3u8 file, try HLS
-    if (Hls.isSupported() && (videoUrl.includes('.m3u8') || useProxy)) {
-      console.log(`Loading video: ${useProxy ? 'Proxy' : 'Direct'} from ${videoUrl}`);
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false, // Usage of Low Latency is aggressive
-        maxBufferLength: 10, // Only buffer 10s ahead
-        maxMaxBufferLength: 20,
-        backBufferLength: 10,
-        xhrSetup: function (xhr) {
-          xhr.withCredentials = false;
-        },
-        // Reduce spamming on error
-        manifestLoadingRetryDelay: 2000,
-        manifestLoadingMaxRetry: 3,
-        fragLoadingRetryDelay: 2000,
-        fragLoadingMaxRetry: 3,
-        levelLoadingMaxRetry: 3,
-      });
-
-      hlsRef.current = hls;
-      hls.loadSource(videoUrl);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => console.log('Autoplay prevented'));
-      });
-
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.log("HLS Fatal Error:", data.type);
-          hls.destroy();
-          if (!useProxy) {
-            console.log("Direct play failed, switching to proxy...");
-            setUseProxy(true);
-          }
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support (Safari)
-      video.src = videoUrl;
-      video.play().catch(() => { });
-    } else {
-      // Direct play (MP4 etc)
-      video.src = videoUrl;
-      video.play().catch(() => { });
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hlsRef.current = hls;
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = url;
+        video.play().catch(() => {});
+      }
     }
 
     return () => {
@@ -150,170 +84,22 @@ export default function FreeReelsWatchPage() {
         hlsRef.current.destroy();
       }
     };
-  }, [currentVideoUrl, useProxy]);
+  }, [videoUrl]);
 
-
-  // Manual Subtitle Injection & Enforcement
-  // We handle this OUTSIDE of React's DOM management to coordinate with HLS.js
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    // Helper to inject track safely
-    const injectTrack = () => {
-      if (!proxiedSubtitleUrl || currentEpisodeData?.originalAudioLanguage === 'id-ID') return;
-
-      // Check if already exists
-      const tracks = Array.from(video.getElementsByTagName('track'));
-      const existing = tracks.find(t => t.label === 'Indonesia' && t.srclang === 'id');
-
-      // Use URL as specific identifier to ensure we have the RIGHT track
-      if (existing) {
-        if (existing.src === proxiedSubtitleUrl) {
-          return; // Already has correct track
-        } else {
-          // Remove old track
-          video.removeChild(existing);
-        }
-      }
-
-      const track = document.createElement('track');
-      track.kind = 'subtitles';
-      track.label = 'Indonesia';
-      track.srclang = 'id';
-      track.default = true;
-      track.src = proxiedSubtitleUrl;
-
-      track.onload = () => {
-        if (track.track) track.track.mode = 'showing';
-      };
-
-      video.appendChild(track);
-      // console.log("Injected subtitle track:", proxiedSubtitleUrl);
-    };
-
-    // Helper to Enforce Visibility
-    const enforce = () => {
-      const tracks = Array.from(video.textTracks);
-      const indo = tracks.find(t => t.label === 'Indonesia' || t.language === 'id');
-      if (indo && indo.mode !== 'showing') {
-        indo.mode = 'showing';
-        // console.log("Enforced showing");
-      }
-    };
-
-    // Inject immediately logic
-    injectTrack();
-
-    // Listeners for enforcement
-    video.addEventListener('loadeddata', enforce);
-    video.addEventListener('canplay', enforce);
-    video.addEventListener('playing', enforce);
-    video.addEventListener('seeked', enforce);
-
-    // --- HLS Integration ---
-    // We need to attach listeners to the HLS instance created in the previous effect?
-    // Actually, we can just hook into video events, but MANIFEST_PARSED is best caught on the hls instance.
-    // Since hlsRef is mutable, we can check it.
-    if (hlsRef.current) {
-      hlsRef.current.on(Hls.Events.MANIFEST_PARSED, () => {
-        // HLS ready, reinject if wipe happened
-        injectTrack();
-        enforce();
-      });
-      hlsRef.current.on(Hls.Events.LEVEL_SWITCHED, () => {
-        // Quality switch -> reinject/enforce
-        injectTrack();
-        enforce();
-      });
-    }
-
-    // Polling for first 2 seconds (Race fix)
-    let retries = 0;
-    const poll = setInterval(() => {
-      injectTrack(); // Ensure it exists
-      enforce();     // Ensure it shows
-      retries++;
-      if (retries > 10) clearInterval(poll);
-    }, 200);
-
-    return () => {
-      video.removeEventListener('loadeddata', enforce);
-      video.removeEventListener('canplay', enforce);
-      video.removeEventListener('playing', enforce);
-      video.removeEventListener('seeked', enforce);
-      clearInterval(poll);
-
-      // Don't remove track, let it persist or be replaced on next run
-      // Actually, we SHOULD remove it if component unmounts or URL changes?
-      // Yes, to prevent duplicates if logic fails.
-      try {
-        const tracks = Array.from(video.getElementsByTagName('track'));
-        const current = tracks.find(t => t.src === proxiedSubtitleUrl);
-        if (current) video.removeChild(current);
-      } catch (e) { }
-    };
-  }, [proxiedSubtitleUrl, currentVideoUrl, videoQuality, currentEpisodeData?.originalAudioLanguage]); // Deps ensure runs on change
-
-  // Navigation Handler
-  const handleEpisodeChange = (index: number) => {
-    if (index === currentEpisodeIndex) return;
-
-    // Updates URL, which triggers the useEffect above
-    const nextEp = index + 1;
-    setShowEpisodeList(false);
-
-    // Use replace for smoother history, or push? Usually push for navigation.
-    // Netshort uses replace for next episode, but buttons usually push.
-    // Let's use push to allow back button to work.
-    // Verify data in console
-    console.log("Current Ep Data:", currentEpisodeData);
-    console.log("Proxied Subtitle URL:", proxiedSubtitleUrl);
-    console.log("Original Audio:", currentEpisodeData?.originalAudioLanguage);
-
-    router.push(`/watch/freereels/${bookId}?ep=${nextEp}`);
-  };
-
-  const handleVideoEnded = () => {
-    const nextIndex = currentEpisodeIndex + 1;
-    if (nextIndex < totalEpisodes) {
-      // Auto-advance
-      const nextEp = nextIndex + 1;
-      router.replace(`/watch/freereels/${bookId}?ep=${nextEp}`); // Replace for auto-advance
+  const handleEpisodeChange = (episodeNumber: number, autoPlay: boolean = true) => {
+    const index = episodeNumber - 1;
+    if (index >= 0 && index < episodes.length) {
+      setCurrentEpisodeIndex(index);
+      setShowEpisodeList(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-        <div className="text-center space-y-2">
-          <h3 className="text-white font-medium text-lg">Memuat video...</h3>
-          <p className="text-white/60 text-sm">Mohon tunggu sebentar...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !drama) {
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center p-4">
-        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-4">Video tidak ditemukan</h2>
-        <Link href="/" className="text-primary hover:underline">
-          Kembali ke beranda
-        </Link>
-      </div>
-    );
-  }
 
   return (
-    <div className="fixed inset-0 bg-black flex flex-col">
-      {/* Header - Fixed Overlay */}
+    <main className="fixed inset-0 bg-black flex flex-col">
+      {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-40 h-16 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent" />
-
-        <div className="relative z-10 flex items-center justify-between h-full px-4 max-w-7xl mx-auto pointer-events-auto">
+        <div className="absolute inset-0 bg-background border-b-2 border-border hidden sm:block" />
+        <div className="relative z-10 hidden sm:flex items-center justify-between h-full px-4 max-w-7xl mx-auto pointer-events-auto">
           <Link
             href={`/detail/freereels/${bookId}`}
             className="flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2 -ml-2 rounded-full hover:bg-white/10"
@@ -324,135 +110,137 @@ export default function FreeReelsWatchPage() {
 
           <div className="text-center flex-1 px-4 min-w-0">
             <h1 className="text-white font-medium truncate text-sm sm:text-base drop-shadow-md">
-              {drama.title}
+              {detailData?.title || "Loading..."}
             </h1>
-            <p className="text-white/80 text-xs drop-shadow-md">
-              {currentEpisodeData ? `Episode ${(currentEpisodeData.index || currentEpisodeIndex) + 1}` : "Episode ?"}
-            </p>
+            <p className="text-white/80 text-xs drop-shadow-md">Episode {currentEpisode?.episodeNumber || 1}</p>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Quality Selector */}
-            <div className="flex bg-black/40 backdrop-blur-sm rounded-lg p-1 border border-white/10">
-              <button
-                onClick={() => setVideoQuality('h264')}
-                className={cn(
-                  "text-[10px] px-2 py-1 rounded-md transition-all font-medium",
-                  videoQuality === 'h264' ? "bg-primary text-white" : "text-white/70 hover:text-white"
-                )}
-              >
-                H.264
-              </button>
-              <button
-                onClick={() => setVideoQuality('h265')}
-                className={cn(
-                  "text-[10px] px-2 py-1 rounded-md transition-all font-medium",
-                  videoQuality === 'h265' ? "bg-primary text-white" : "text-white/70 hover:text-white"
-                )}
-              >
-                H.265
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowEpisodeList(!showEpisodeList)}
-              className="p-2 text-white/90 hover:text-white transition-colors rounded-full hover:bg-white/10"
-            >
+            <button onClick={() => setShowEpisodeList(!showEpisodeList)} className="p-2 text-white/90 hover:text-white transition-colors rounded-full hover:bg-white/10">
               <List className="w-6 h-6 drop-shadow-md" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Video Area */}
-      <div className="flex-1 w-full h-full relative bg-black flex flex-col items-center justify-center">
-        <div className="relative w-full h-full flex items-center justify-center">
-          {currentVideoUrl ? (
-            <video
-              ref={videoRef}
-              controls
-              autoPlay
-              className="w-full h-full object-contain max-h-[100dvh]"
-              poster={drama.cover}
-              onEnded={handleVideoEnded}
-              {...({ disableRemotePlayback: true, referrerPolicy: "no-referrer" } as any)}
-              crossOrigin="anonymous"
-            >
-            </video>
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center z-20 flex-col gap-4">
-              <p className="text-white/60">URL Video tidak ditemukan</p>
+      <div 
+        className="flex-1 w-full h-full relative bg-black flex flex-col items-center justify-center group overflow-hidden" 
+        onClick={togglePlayPause}
+      >
+        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+          {showPlayIcon && (
+            <div className="bg-white/20 p-6 rounded-full animate-ping-once opacity-0">
+              <Play className="w-12 h-12 text-white fill-current" />
+            </div>
+          )}
+          {showPauseIcon && (
+            <div className="bg-white/20 p-6 rounded-full animate-ping-once opacity-0">
+              <Pause className="w-12 h-12 text-white fill-current" />
+            </div>
+          )}
+          {!isPlaying && !showPlayIcon && !showPauseIcon && (
+            <div className="bg-black/40 p-6 rounded-full border border-white/20 backdrop-blur-sm scale-110 animate-in fade-in zoom-in duration-200">
+              <Play className="w-14 h-14 text-white fill-current translate-x-1" />
             </div>
           )}
         </div>
 
-        {/* Navigation Controls Overlay - Bottom */}
-        <div className="absolute bottom-20 md:bottom-12 left-0 right-0 z-40 pointer-events-none flex justify-center pb-safe-area-bottom">
-          <div className="flex items-center gap-2 md:gap-6 pointer-events-auto bg-black/60 backdrop-blur-md px-3 py-1.5 md:px-6 md:py-3 rounded-full border border-white/10 shadow-lg transition-all scale-90 md:scale-100 origin-bottom">
-            <button
-              onClick={() => handleEpisodeChange(currentEpisodeIndex - 1)}
-              disabled={currentEpisodeIndex <= 0}
-              className="p-1.5 md:p-2 rounded-full text-white disabled:opacity-30 hover:bg-white/10 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
-            </button>
+        <div className="relative w-full h-full flex items-center justify-center">
+          {(detailLoading || streamLoading) && (
+            <div className="absolute inset-0 flex items-center justify-center z-20">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+          )}
 
-            <span className="text-white font-medium text-xs md:text-sm tabular-nums min-w-[60px] md:min-w-[80px] text-center">
-              Ep {currentEpisodeData ? (currentEpisodeData.index || currentEpisodeIndex) + 1 : 1} / {totalEpisodes}
-            </span>
+          <video
+            ref={videoRef}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => {
+              const nextEp = currentEpisodeIndex + 2;
+              if (nextEp <= totalEpisodes) {
+                handleEpisodeChange(nextEp, true);
+              }
+            }}
+            onTimeUpdate={() => videoRef.current && setCurrentTime(videoRef.current.currentTime)}
+            onLoadedMetadata={() => {
+              if (videoRef.current) {
+                videoRef.current.volume = 1;
+                setDuration(videoRef.current.duration);
+              }
+            }}
+            className="w-full h-full object-contain max-h-[100dvh]"
+            playsInline
+            autoPlay
+          />
 
-            <button
-              onClick={() => handleEpisodeChange(currentEpisodeIndex + 1)}
-              disabled={currentEpisodeIndex >= totalEpisodes - 1}
-              className="p-1.5 md:p-2 rounded-full text-white disabled:opacity-30 hover:bg-white/10 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 md:w-6 md:h-6" />
-            </button>
+          <div className="absolute bottom-0 left-0 right-0 z-50">
+            <VideoProgress
+              currentTime={currentTime}
+              duration={duration}
+              onSeek={handleSeek}
+            />
           </div>
         </div>
       </div>
 
-      {/* Episode List Sidebar */}
+      <div className="absolute bottom-20 md:bottom-12 left-0 right-0 z-40 pointer-events-none flex items-end justify-between px-4 pb-safe-area-bottom">
+        <div className="flex-1 max-w-[70%] mb-2 sm:hidden">
+          <h2 className="text-white font-bold text-lg drop-shadow-lg truncate">{detailData?.title || "Loading..."}</h2>
+          <p className="text-white/80 text-sm drop-shadow-md">Episode {currentEpisode?.episodeNumber || 1}</p>
+        </div>
+
+        <div className="flex flex-col items-center gap-4">
+          <MobileReelsControls 
+            onShowEpisodes={() => setShowEpisodeList(true)}
+            qualities={[]}
+            currentQuality=""
+            onQualityChange={() => {}}
+            shareData={{
+              title: detailData?.title || "SaPlay",
+              text: `Tonton ${detailData?.title} Episode ${currentEpisode?.episodeNumber || 1} di SaPlay!`,
+              url: typeof window !== "undefined" ? window.location.href : ""
+            }}
+            videoUrl={videoUrl || undefined}
+          />
+        </div>
+
+        <ModernEpisodeNav 
+          onPrev={() => handleEpisodeChange(currentEpisodeIndex)}
+          onNext={() => handleEpisodeChange(currentEpisodeIndex + 2)}
+          disabledPrev={currentEpisodeIndex <= 0}
+          disabledNext={currentEpisodeIndex >= totalEpisodes - 1}
+        />
+      </div>
+
       {showEpisodeList && (
         <>
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
-            onClick={() => setShowEpisodeList(false)}
-          />
-          <div className="fixed inset-y-0 right-0 w-72 bg-zinc-900 z-[70] overflow-y-auto border-l border-white/10 shadow-2xl animate-in slide-in-from-right">
-            <div className="p-4 border-b border-white/10 sticky top-0 bg-zinc-900 z-10 flex items-center justify-between">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-in fade-in duration-300" onClick={() => setShowEpisodeList(false)} />
+          <div className="fixed inset-x-0 bottom-0 h-auto max-h-[75vh] bg-background z-[70] overflow-y-auto border-t-2 border-border shadow-2xl animate-in slide-in-from-bottom duration-300 rounded-t-[32px] pb-safe-area-bottom">
+            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-3 mb-2" />
+            <div className="p-4 border-b-2 border-border sticky top-0 bg-background z-10 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-white">Daftar Episode</h2>
-                <span className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full">
-                  Total {totalEpisodes}
-                </span>
+                <h2 className="font-bold text-white text-lg">Daftar Episode</h2>
+                <span className="text-xs text-white/60 bg-white/10 px-2 py-0.5 rounded-full">Total {totalEpisodes}</span>
               </div>
-              <button
-                onClick={() => setShowEpisodeList(false)}
-                className="p-1 text-white/70 hover:text-white"
-              >
-                <ChevronRight className="w-6 h-6" />
+              <button onClick={() => setShowEpisodeList(false)} className="p-2 text-white/70 hover:text-white bg-white/5 rounded-full transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-3 grid grid-cols-5 gap-2">
+            <div className="p-4 grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3">
               {episodes.map((ep: any, idx: number) => (
                 <button
-                  key={ep.id}
-                  onClick={() => handleEpisodeChange(idx)}
-                  className={cn(
-                    "aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-all",
-                    idx === currentEpisodeIndex
-                      ? "bg-primary text-white shadow-lg shadow-primary/20"
-                      : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
-                  )}
+                  key={ep.episodeNumber}
+                  onClick={() => handleEpisodeChange(ep.episodeNumber)}
+                  className={`aspect-square flex items-center justify-center rounded-2xl text-base font-bold transition-all ${idx === currentEpisodeIndex ? "bg-primary text-primary-foreground shadow-lg scale-95 shadow-primary/20" : "bg-secondary text-muted-foreground border-2 border-transparent hover:border-primary/50 hover:bg-secondary/80 active:scale-90"}`}
                 >
-                  {(ep.index || idx) + 1}
+                  {ep.episodeNumber}
                 </button>
               ))}
             </div>
           </div>
         </>
       )}
-    </div>
+    </main>
   );
 }

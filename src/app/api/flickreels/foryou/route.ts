@@ -1,5 +1,6 @@
 import { encryptedResponse, safeJson } from "@/lib/api-utils";
 import { NextRequest, NextResponse } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -8,13 +9,13 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const page = searchParams.get("page") || "1";
     
-    // Pass page param to upstream
     const res = await fetch(`https://api.sansekai.my.id/api/flickreels/foryou?page=${page}`, {
       method: "GET",
+      ...PROXY_CACHE_CONFIG,
       headers: {
+        ...getProxyHeaders("https://www.flickreels.com/"),
         "Content-Type": "application/json",
       },
-      cache: 'no-store'
     });
 
     if (!res.ok) {

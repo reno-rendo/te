@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -12,10 +13,11 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(`https://api.sansekai.my.id/api/freereels/detailAndAllEpisode?key=${id}`, {
       method: "GET",
+      ...PROXY_CACHE_CONFIG,
       headers: {
+        ...getProxyHeaders(),
         "Content-Type": "application/json",
       },
-      next: { revalidate: 300 } // Cache detail for 5 minutes
     });
 
     if (!res.ok) {

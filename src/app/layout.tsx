@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "Nonton drama pendek gratis dan tanpa iklan di SaPlay.",
 };
 
+import { MobileNavbar } from "@/components/MobileNavbar";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,13 +27,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <Providers>
           <div className="flex relative">
             <Suspense fallback={<div className="hidden lg:flex w-[260px] h-screen bg-muted" />}>
               <Sidebar />
             </Suspense>
-            <div className="flex-1 flex flex-col min-h-screen min-w-0">
+            <div className="flex-1 flex flex-col min-h-screen min-w-0 pb-20 lg:pb-0">
               <Suspense fallback={<div className="h-16" />}>
                 <Header />
               </Suspense>
@@ -39,6 +41,7 @@ export default function RootLayout({
               <Footer />
             </div>
           </div>
+          <MobileNavbar />
           <Toaster />
           <Sonner />
           <WelcomeModal />

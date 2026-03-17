@@ -1,6 +1,6 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 const UPSTREAM_API = "https://api.sansekai.my.id/api/dramabox";
 
@@ -9,15 +9,12 @@ export async function GET(
   { params }: { params: Promise<{ bookId: string }> }
 ) {
   const { bookId } = await params;
-  const headersList = await headers();
-  const accept = headersList.get("accept") || "";
-
-
 
   // If API fetch -> proxy to upstream
   try {
     const response = await fetch(`${UPSTREAM_API}/detail?bookId=${bookId}`, {
-      cache: 'no-store',
+      ...PROXY_CACHE_CONFIG,
+      headers: getProxyHeaders(),
     });
 
     if (!response.ok) {

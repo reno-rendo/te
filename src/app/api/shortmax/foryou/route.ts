@@ -1,6 +1,7 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { optimizeCover } from "@/lib/image-utils";
 import { NextRequest } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 const UPSTREAM_API = "https://api.sansekai.my.id/api/shortmax";
 
@@ -10,7 +11,8 @@ export async function GET(request: NextRequest) {
     const page = searchParams.get("page") || "1";
 
     const response = await fetch(`${UPSTREAM_API}/foryou?page=${page}`, {
-      cache: 'no-store',
+      ...PROXY_CACHE_CONFIG,
+      headers: getProxyHeaders(),
     });
 
     if (!response.ok) {

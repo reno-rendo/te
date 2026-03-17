@@ -1,5 +1,6 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { NextRequest, NextResponse } from "next/server";
+import { getProxyHeaders, PROXY_CACHE_CONFIG } from "@/lib/proxy-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,8 @@ export async function GET(request: NextRequest) {
     const page = searchParams.get("page") || "1";
     
     const response = await fetch(`${UPSTREAM_API}/foryou?page=${page}`, {
-      cache: 'no-store',
+      ...PROXY_CACHE_CONFIG,
+      headers: getProxyHeaders(),
     });
 
     if (!response.ok) {
@@ -22,25 +24,19 @@ export async function GET(request: NextRequest) {
     }
 
     const json = await safeJson<any>(response);
-    
-    // Check if the response has the expected structure
-    // API returns: { success: true, data: { lists: [...] } }
     const rawList = json?.data?.lists || [];
 
-    // Map the snake_case keys from ReelShort API to our standard camelCase Drama interface
     const mappedData = Array.isArray(rawList) 
       ? rawList.map((item: any) => ({
           bookId: item.book_id,
           bookName: item.book_title,
-          coverWap: item.book_pic, // Map book_pic to coverWap
-          cover: item.book_pic,    // Also map to cover for fallback
+          coverWap: item.book_pic,
+          cover: item.book_pic,
           chapterCount: item.chapter_count,
           introduction: item.special_desc,
-          corner: item.start_play_episode ? { name: "Boleh Ditonton", color: "#FF4D4F" } : undefined // Mock corner if needed, or omit
         }))
       : [];
       
-    // Filter out invalid items just in case
     const filteredData = mappedData.filter((item: any) => item && item.bookId);
 
     return encryptedResponse(filteredData);

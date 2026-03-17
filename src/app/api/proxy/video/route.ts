@@ -105,6 +105,8 @@ export async function GET(req: NextRequest) {
   const urlParams = req.nextUrl.searchParams;
   const url = urlParams.get("url");
   const refererParam = urlParams.get("referer");
+  const downloadParam = urlParams.get("download");
+  const filenameParam = urlParams.get("filename") || "video";
 
   if (!url) {
     return new NextResponse("Missing URL parameter", { status: 400 });
@@ -156,6 +158,11 @@ export async function GET(req: NextRequest) {
         if (upstreamRes.headers['content-range']) {
             responseHeaders.set("Content-Range", upstreamRes.headers['content-range']);
         }
+        
+        if (downloadParam === "true") {
+            const ext = lowUrl.includes(".m3u8") ? ".m3u8" : ".mp4";
+            responseHeaders.set("Content-Disposition", `attachment; filename="${filenameParam}${ext}"`);
+        }
 
         return new NextResponse(stream as any, {
             status: upstreamRes.statusCode || 200,
@@ -176,6 +183,8 @@ export async function GET(req: NextRequest) {
     const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
     const proto = req.headers.get("x-forwarded-proto") || "https"; 
     const origin = `${proto}://${host}`;
+
+    let nextRes: NextResponse;
 
     if (isM3u8 || isM3u8Content) {
         const text = decoder.decode(buffer);
@@ -221,7 +230,7 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        return new NextResponse(rewritten, {
+        nextRes = new NextResponse(rewritten, {
             status: 200,
             headers: {
                 "Content-Type": "application/vnd.apple.mpegurl",
@@ -229,6 +238,12 @@ export async function GET(req: NextRequest) {
                 "Cache-Control": "no-store",
             }
         });
+
+        if (downloadParam === "true") {
+            nextRes.headers.set("Content-Disposition", `attachment; filename="${filenameParam}.m3u8"`);
+        }
+
+        return nextRes;
     }
 
     // VTT/SRT Logic
@@ -257,13 +272,18 @@ export async function GET(req: NextRequest) {
        });
     }
 
+    const responseHeaders = new Headers();
+    responseHeaders.set("Content-Type", contentType || "application/octet-stream");
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+    
+    if (downloadParam === "true") {
+        responseHeaders.set("Content-Disposition", `attachment; filename="${filenameParam}"`);
+    }
+
     // FALLBACK: Just return buffered content (e.g. small unknown files)
     return new NextResponse(buffer as any, {
         status: upstreamRes.statusCode || 200,
-        headers: {
-            "Content-Type": contentType,
-            "Access-Control-Allow-Origin": "*",
-        }
+        headers: responseHeaders
     });
 
   } catch (error) {

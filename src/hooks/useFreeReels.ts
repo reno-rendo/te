@@ -5,26 +5,28 @@ import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/fetcher";
 
 // Interfaces based on FreeReels JSON response
+export interface FreeReelsEpisode {
+  id: string;
+  name: string;
+  index: number;
+  video_url: string;
+  videoUrl: string;
+  m3u8_url?: string;
+  cover?: string;
+  subtitleUrl?: string;
+  episodeNumber: number;
+}
+
 export interface FreeReelsItem {
   key: string;
+  id: string;
   cover: string;
   title: string;
+  name?: string;
   desc: string;
   episode_count: number;
   follow_count: number;
-  content_tags?: string[];
-  container?: {
-    kind: string;
-    episode_info?: {
-      id: string;
-      name: string;
-    };
-    next_episode?: {
-      id: string;
-      name: string;
-    };
-  };
-  link?: string;
+  episodes?: FreeReelsEpisode[];
   [key: string]: any;
 }
 
@@ -134,39 +136,33 @@ export function useFreeReelsDetail(bookId: string) {
     queryKey: ["freereels", "detail", bookId],
     queryFn: () => fetchJson<any>(`/api/freereels/detail?id=${bookId}`),
      select: (response) => {
-       // Response has { data: { info: { ... }, ... } }
        const info = response.data?.info;
        if (!info) return null;
        
-       // Transform info to FreeReelsItem
-       const episodes = info.episode_list?.map((ep: any) => {
-           // Find Indonesian subtitle if available
+       const episodes: FreeReelsEpisode[] = info.episode_list?.map((ep: any, idx: number) => {
            const indoSub = ep.subtitle_list?.find((sub: any) => sub.language === 'id-ID');
            
            return {
                id: ep.id,
                name: ep.name,
-               index: (info.episode_list?.indexOf(ep) || 0),
+               index: idx,
+               episodeNumber: idx + 1,
+               video_url: ep.video_url || ep.external_audio_h264_m3u8 || "",
                videoUrl: ep.video_url || ep.external_audio_h264_m3u8 || "", 
                m3u8_url: ep.m3u8_url || "",
-               external_audio_h264_m3u8: ep.external_audio_h264_m3u8 || "",
-               external_audio_h265_m3u8: ep.external_audio_h265_m3u8 || "",
                cover: ep.cover || info.cover,
-               // Subtitle extraction
                subtitleUrl: indoSub?.subtitle || indoSub?.vtt || "",
-               originalAudioLanguage: ep.original_audio_language || "",
            };
        }) || [];
 
        return {
-         data: {
-           ...info,
-           key: info.id,
-           title: info.name,
-           follow_count: info.follow_count || 0,
-           episodes: episodes,
-         } as FreeReelsItem
-       };
+         ...info,
+         id: info.id,
+         key: info.id,
+         title: info.name,
+         follow_count: info.follow_count || 0,
+         episodes: episodes,
+       } as FreeReelsItem;
     },
     enabled: !!bookId,
     staleTime: 5 * 60 * 1000,
