@@ -10,7 +10,15 @@ export async function GET() {
     targets.map(async (url) => {
       try {
         const start = Date.now();
-        const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+        const res = await fetch(url, { 
+          cache: 'no-store', 
+          signal: AbortSignal.timeout(5000),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://api.sansekai.my.id/',
+            'Accept': 'application/json',
+          }
+        });
         const duration = Date.now() - start;
         const contentType = res.headers.get("content-type");
         const bodyPreview = await res.text().then(t => t.substring(0, 100));
