@@ -26,7 +26,8 @@ export function DonationDialog({ trigger }: { trigger: React.ReactNode }) {
     const [customAmount, setCustomAmount] = useState("");
     const [isOpen, setIsOpen] = useState(false);
 
-    const slug = process.env.NEXT_PUBLIC_PAKASIR_SLUG || "saplay";
+    // Hardcoded Pakasir Project Slug
+    const slug = "saplay";
 
     const handleDonation = () => {
         const finalAmount = amount === "" ? parseInt(customAmount) : amount;
