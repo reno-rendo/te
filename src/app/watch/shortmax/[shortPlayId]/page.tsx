@@ -251,7 +251,7 @@ export default function ShortMaxWatchPage() {
         <div className="flex flex-col items-center gap-4">
           <MobileReelsControls 
             onShowEpisodes={() => setShowEpisodeList(true)}
-            qualities={qualityOptions.map(o => ({ label: o.label, value: o.key }))}
+            qualities={qualityOptions.map(o => ({ label: o.label, value: o.id }))}
             currentQuality={selectedQuality}
             onQualityChange={(q) => setSelectedQuality(q)}
             shareData={{
