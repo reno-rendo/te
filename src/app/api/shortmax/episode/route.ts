@@ -1,7 +1,7 @@
 import { safeJson, encryptedResponse } from "@/lib/api-utils";
 import { NextRequest } from "next/server";
 
-const UPSTREAM_API = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.sansekai.my.id/api") + "/shortmax";
+const UPSTREAM_API = "https://api.sansekai.my.id/api/shortmax";
 
 export async function GET(request: NextRequest) {
   try {

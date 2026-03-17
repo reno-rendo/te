@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const page = searchParams.get("page") || "1";
     
     // Pass page param to upstream
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.sansekai.my.id/api"}/flickreels/foryou?page=${page}`, {
+    const res = await fetch(`https://api.sansekai.my.id/api/flickreels/foryou?page=${page}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

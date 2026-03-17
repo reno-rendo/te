@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const offset = searchParams.get("offset") || "0";
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.sansekai.my.id/api"}/freereels/foryou?offset=${offset}`, {
+    const res = await fetch(`https://api.sansekai.my.id/api/freereels/foryou?offset=${offset}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

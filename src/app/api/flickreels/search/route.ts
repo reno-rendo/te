@@ -1,7 +1,7 @@
 import { encryptedResponse, safeJson } from "@/lib/api-utils";
 import { NextRequest, NextResponse } from "next/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.sansekai.my.id";
+const BASE_URL = "https://api.sansekai.my.id/api";
 const API_URL = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
 
 export async function GET(request: NextRequest) {

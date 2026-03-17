@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.sansekai.my.id/api"}/flickreels/latest`, {
+    const res = await fetch(`https://api.sansekai.my.id/api/flickreels/latest`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

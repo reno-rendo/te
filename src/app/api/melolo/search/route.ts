@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.sansekai.my.id/api";
+    const baseUrl = "https://api.sansekai.my.id/api";
     const response = await fetch(`${baseUrl}/melolo/search?query=${encodeURIComponent(query)}`);
     const data = await response.json();
     return encryptedResponse(data);
