@@ -10,7 +10,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "SaPlay - Streaming Drama Pendek",
+  title: "SaPlay - Nonton Drama Tanpa Drama",
   description: "Nonton drama pendek gratis dan tanpa iklan di SaPlay.",
 };
 
